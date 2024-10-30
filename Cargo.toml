@@ -6,7 +6,11 @@ authors = ["Jan Benda <contact@jbenda.de>"]
 
 
 [dependencies]
-warp = "0.3.7"
-sqlx = "0.8.2"
 serde = { version = "1.0", features = ["derive"] }
+sqlx = { version = "0.8.2", features = ["sqlite"] }
+tokio = { version = "1.41.0", features = ["full"] }
+uuid = { version = "1.11.0", features = ["v4"] }
+dotenv = "0.15.0"
 serde_json = "1.0"
+tempfile = "3.13.0"
+warp = "0.3.7"
