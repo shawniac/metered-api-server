@@ -1,31 +1,18 @@
 mod config;
-mod limiter;
 
-use axum::{middleware, routing::get, Router, Server};
-use config::Config;
-use limiter::{rate_limit_middleware, AppState, RateLimiter};
+use axum::{routing::get, Router, Server};
 use std::net::SocketAddr;
-use std::sync::Arc;
+use config::Config;
 
 #[tokio::main]
 async fn main() {
     let config = Config::from_env();
     let addr: SocketAddr = config.server_addr.parse().expect("Invalid server address");
 
-    let app_state = Arc::new(AppState {
-        limiter: RateLimiter::new(),
-        config,
-    });
-
     let app = Router::new()
         .route("/x", get(handler_x))
         .route("/y", get(handler_y))
-        .route("/z", get(handler_z))
-        .layer(middleware::from_fn_with_state(
-            app_state.clone(),
-            rate_limit_middleware,
-        ))
-        .with_state(app_state);
+        .route("/z", get(handler_z));
 
     println!("Listening on {}", addr);
 
