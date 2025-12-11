@@ -72,6 +72,67 @@ mod tests {
     #[tokio::test]
     async fn test_api_data() {
         let store: MeterStore = Arc::new(Mutex::new(HashMap::new()));
+    #[tokio::test]
+    async fn test_api_data_anonymous() {
+        let store: MeterStore = Arc::new(Mutex::new(HashMap::new()));
+        let routes = routes(store);
+        let resp = request()
+            .method("POST")
+            .path("/api/data")
+            .reply(&routes)
+            .await;
+        assert_eq!(resp.status(), 200);
+        let body: serde_json::Value = serde_json::from_slice(resp.body()).unwrap();
+        assert_eq!(body["message"], "Data processed");
+        assert_eq!(body["api_key"], serde_json::Value::Null);
+    }
+
+    #[tokio::test]
+    async fn test_metrics() {
+        let store: MeterStore = Arc::new(Mutex::new(HashMap::new()));
+        {
+            let mut data = store.lock().await;
+            data.insert("test-key".to_string(), vec![1, 2, 3]);
+        }
+        let routes = routes(store);
+        let resp = request().method("GET").path("/metrics").reply(&routes).await;
+        assert_eq!(resp.status(), 200);
+        let body: serde_json::Value = serde_json::from_slice(resp.body()).unwrap();
+        assert_eq!(body["test-key"], 3);
+    }
+
+    #[tokio::test]
+    async fn test_rate_limiting() {
+        let store: MeterStore = Arc::new(Mutex::new(HashMap::new()));
+        let routes = routes(store);
+        // Make 10 requests
+        for _ in 0..10 {
+            let resp = request()
+                .method("POST")
+                .path("/api/data")
+                .header("x-api-key", "rate-test")
+                .reply(&routes)
+    #[tokio::test]
+    async fn test_not_found() {
+        let store: MeterStore = Arc::new(Mutex::new(HashMap::new()));
+        let routes = routes(store);
+        let resp = request().method("GET").path("/nonexistent").reply(&routes).await;
+        assert_eq!(resp.status(), 404);
+        let body: serde_json::Value = serde_json::from_slice(resp.body()).unwrap();
+        assert!(body["error"].is_string());
+    }
+                .await;
+            assert_eq!(resp.status(), 200);
+        }
+        // 11th should be 429
+        let resp = request()
+            .method("POST")
+            .path("/api/data")
+            .header("x-api-key", "rate-test")
+            .reply(&routes)
+            .await;
+        assert_eq!(resp.status(), 429);
+    }
         let routes = routes(store);
         let resp = request()
             .method("POST")

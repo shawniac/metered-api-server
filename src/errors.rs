@@ -27,6 +27,22 @@ impl warp::Reply for AppError {
             AppError::Warp(_) => (StatusCode::INTERNAL_SERVER_ERROR, "Server error"),
             AppError::Io(_) => (StatusCode::INTERNAL_SERVER_ERROR, "IO error"),
             AppError::Config(_) => (StatusCode::INTERNAL_SERVER_ERROR, "Configuration error"),
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_app_error_display() {
+        let err = AppError::Config("test error".to_string());
+        assert_eq!(format!("{}", err), "Configuration error: test error");
+    }
+
+    #[test]
+    fn test_rate_limit_error() {
+        let err = AppError::RateLimitExceeded;
+        assert_eq!(format!("{}", err), "Rate limit exceeded");
+    }
+}
             AppError::RateLimitExceeded => (StatusCode::TOO_MANY_REQUESTS, "Rate limit exceeded"),
         };
         with_status(json(&serde_json::json!({ "error": message })), status).into_response()
